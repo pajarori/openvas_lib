@@ -599,10 +599,13 @@ class OMPUniversal(OMP):
 			port_list = self.get_port_lists().get("all iana assigned tcp").get('id')
 
 		from collections.abc import Iterable
-		if isinstance(hosts, Iterable):
-			m_targets = hosts
-		elif isinstance(hosts, str) and "," in hosts:
-			m_targets = hosts.split(',')
+		if isinstance(hosts, str):
+			if "," in hosts:
+				m_targets = hosts.split(',')
+			else:
+				m_targets = [hosts]
+		elif isinstance(hosts, Iterable):
+			m_targets = list(hosts)
 		else:
 			m_targets = [hosts]
 
