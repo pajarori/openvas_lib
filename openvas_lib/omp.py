@@ -599,10 +599,12 @@ class OMPUniversal(OMP):
 			port_list = self.get_port_lists().get("all iana assigned tcp").get('id')
 
 		from collections.abc import Iterable
-		if isinstance(hosts, str):
+		if isinstance(hosts, Iterable):
 			m_targets = hosts
-		elif isinstance(hosts, Iterable):
-			m_targets = str(",".join(hosts))
+		elif isinstance(hosts, str) and "," in hosts:
+			m_targets = hosts.split(',')
+		elif isinstance(hosts, str) and "," not in hosts:
+			m_targets = [hosts]
 
 		return etree.fromstring(self._manager.create_target(
 			name=name,
@@ -610,7 +612,7 @@ class OMPUniversal(OMP):
 			comment=comment,
 			port_list_id=port_list,
 			alive_test=alive_test
-		))
+		)).get("id")
 
 	# ----------------------------------------------------------------------
 

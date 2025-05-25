@@ -699,8 +699,7 @@ class VulnscanManager(object):
 
 		# Create the target
 		try:
-			m_target_id = self.__manager.create_target(m_target_name, target,
-													   "Temporal target from OpenVAS Lib", port_list_id, alive_test)
+			m_target_id = self.__manager.create_target(m_target_name, target, "Temporal target from OpenVAS Lib", port_list_id, alive_test)
 		except ServerError as e:
 			raise VulnscanTargetError("The target already exits on the server. Error: %s" % e.message)
 
