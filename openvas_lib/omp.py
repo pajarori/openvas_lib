@@ -718,6 +718,17 @@ class OMPUniversal(OMP):
 		if not config:
 			config = "Full and fast"
 
+		print({
+			'name': name,
+			'target': target,
+			'config': config,
+			'schedule': schedule,
+			'scanner_id': scanner_id,
+			'comment': comment,
+			'max_checks': max_checks,
+			'max_hosts': max_hosts
+		})
+
 		return etree.fromstring(self._manager.create_task(
 			name=name,
 			target_id=target,
