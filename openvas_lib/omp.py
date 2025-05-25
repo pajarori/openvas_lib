@@ -501,9 +501,9 @@ class OMPUniversal(OMP):
 		"""
 		# Recover all config from OpenVAS
 		if config_id:
-			return etree.fromstring(self._manager.get_scanners(filter_id=config_id, details='1')).find('.//config[@id="%s"]' % config_id)
+			return etree.fromstring(self._manager.get_scan_configs(filter_id=config_id, details='1')).find('.//config[@id="%s"]' % config_id)
 		else:
-			return etree.fromstring(self._manager.get_scanners(details='1'))
+			return etree.fromstring(self._manager.get_scan_configs(details='1'))
 		
 	# ----------------------------------------------------------------------
 	def get_configs_ids(self, name=None):
