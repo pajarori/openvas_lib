@@ -806,7 +806,7 @@ class OMPUniversal(OMP):
 		if task_id:
 			return etree.fromstring(self._manager.get_tasks(filter_id=task_id, details='1')).find('.//task[@id="%s"]' % task_id)
 		else:
-			return etree.fromstring(self._manager.get_tasks(details='1')).find('.//tasks')
+			return etree.fromstring(self._manager.get_tasks(details='1'))
 
 
 	def get_tasks(self, task_id=None):
