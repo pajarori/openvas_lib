@@ -313,6 +313,41 @@ class OMPUniversal(OMP):
 
 	# ----------------------------------------------------------------------
 
+	def get_scanners(self, scanner_id=None):
+		"""
+		Get scanners in OpenVAS.
+
+		If scanner_id is provided, only get the scanner associated to this id.
+
+		:param scanner_id: scanner id to get
+		:type scanner_id: str
+
+		:return: `ElementTree`
+
+		:raises: ClientError, ServerError
+		"""
+		# if scanner_id:
+		# 	return etree.fromstring(self._manager.get_scanners(filter_id=scanner_id))
+		# else:
+		# 	return etree.fromstring(self._manager.get_scanners())
+
+		m_return = {}
+
+		if not scanner_id:
+			elems = etree.fromstring(self._manager.get_scanners())
+
+			for x in elems.findall("scanner"):
+				m_return[x.find("name").text.lower()] = x.get("id")
+		else:
+			if not isinstance(scanner_id, str):
+				raise TypeError("Expected string, got %r instead" % type(scanner_id))
+
+			scanner = etree.fromstring(self._manager.get_scanners(filter_id=scanner_id)).find('.//scanner[@id="%s"]' % scanner_id)
+			m_return[scanner.find("name").text.lower()] = scanner.get("id")
+		
+		return m_return
+
+
 	def get_port_lists(self, port_list_id=None):
 		"""
 		Get a user in OpenVAS.

@@ -679,7 +679,7 @@ class VulnscanManager(object):
 
 		comment = str(kwargs.get("comment", 'New scan launched on target hosts: %s' % ",".join(target)))
 
-		port_list_name = kwargs.get("port_list", "openvas default")
+		port_list_name = kwargs.get("port_list", "all iana assigned tcp")
 		if not isinstance(port_list_name, str):
 			raise TypeError("Expected string, got %r instead" % type(port_list_name))
 
@@ -687,6 +687,16 @@ class VulnscanManager(object):
 			port_list_id = self.get_port_lists().get(port_list_name).get('id')
 		except:
 			port_list_id = None
+
+		scanners_name = kwargs.get("scanners", "openvas default")
+		if not isinstance(scanners_name, str):
+			raise TypeError("Expected string, got %r instead" % type(scanners_name))
+		
+		try:
+			scanners_id = self.__manager.get_scanners.get(scanners_name)
+		except:
+			scanners_id = None
+
 		# Create the target
 		try:
 			m_target_id = self.__manager.create_target(m_target_name, target,
@@ -711,6 +721,7 @@ class VulnscanManager(object):
 												   max_checks=max_checks,
 												   config=m_profile_id,
 												   schedule=schedule,
+												   scanners_id=scanners_id,
 												   comment=comment)
 		except ServerError as e:
 			raise VulnscanScanError("The target selected doesnn't exist in the server. Error: %s" % e.message)
@@ -874,6 +885,18 @@ class VulnscanManager(object):
 		except ServerError as e:
 			raise VulnscanTargetError("Error while attempting to create target: %s" % e.message)
 		return m_target_id
+
+	def get_scanners(self, scanner_name=None):
+		"""
+		Get all available scanners in the OpenVAS server.
+
+		:param scanner_name: If set, return only the scanner with this name.
+		:type scanner_name: str
+
+		:return: All available scanners.
+		:rtype: {scanner_name: ID}
+		"""
+		return self.__manager.get_scanners(scanner_name)
 
 	# ----------------------------------------------------------------------
 	def get_port_lists(self, port_list_name=None):
