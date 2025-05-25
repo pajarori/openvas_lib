@@ -603,10 +603,8 @@ class OMPUniversal(OMP):
 			m_targets = hosts
 		elif isinstance(hosts, str) and "," in hosts:
 			m_targets = hosts.split(',')
-		elif isinstance(hosts, str) and "," not in hosts:
+		else:
 			m_targets = [hosts]
-
-		print(m_targets)
 
 		return etree.fromstring(self._manager.create_target(
 			name=name,
@@ -719,18 +717,6 @@ class OMPUniversal(OMP):
 
 		if not config:
 			config = "Full and fast"
-
-		print({
-			'name': name,
-			'target': target,
-			'config': config,
-			'schedule': schedule,
-			'scanner_id': scanner_id,
-			'comment': comment,
-			'max_checks': max_checks,
-			'max_hosts': max_hosts
-
-		})
 
 		return etree.fromstring(self._manager.create_task(
 			name=name,
