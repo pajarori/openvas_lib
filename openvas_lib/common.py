@@ -544,7 +544,7 @@ class OMP(object):
 		raise NotImplementedError()
 
 	# ----------------------------------------------------------------------
-	def create_task(self, name, target, config=None, comment=""):
+	def create_task(self, name, target, config=None, scanner_id=None, comment=""):
 		"""
 		Creates a task in OpenVAS.
 

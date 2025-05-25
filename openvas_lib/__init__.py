@@ -693,9 +693,9 @@ class VulnscanManager(object):
 			raise TypeError("Expected string, got %r instead" % type(scanners_name))
 		
 		try:
-			scanners_id = self.__manager.get_scanners.get(scanners_name)
+			scanner_id = self.__manager.get_scanners.get(scanners_name)
 		except:
-			scanners_id = None
+			scanner_id = None
 
 		# Create the target
 		try:
@@ -721,7 +721,7 @@ class VulnscanManager(object):
 												   max_checks=max_checks,
 												   config=m_profile_id,
 												   schedule=schedule,
-												   scanners_id=scanners_id,
+												   scanner_id=scanner_id,
 												   comment=comment)
 		except ServerError as e:
 			raise VulnscanScanError("The target selected doesnn't exist in the server. Error: %s" % e.message)

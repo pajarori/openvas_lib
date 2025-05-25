@@ -682,7 +682,7 @@ class OMPUniversal(OMP):
 	#
 	# ----------------------------------------------------------------------
 
-	def create_task(self, name, target, config=None, schedule=None, comment="", max_checks=None, max_hosts=None):
+	def create_task(self, name, target, config=None, schedule=None, comment="", scanner_id=None, max_checks=None, max_hosts=None):
 		"""
 		Creates a task in OpenVAS.
 
@@ -721,6 +721,7 @@ class OMPUniversal(OMP):
 			target_id=target,
 			config_id=config,
 			schedule_id=schedule,
+			scanner_id=scanner_id,
 			comment=comment,
 			preferences={
 				'max_checks': max_checks,
