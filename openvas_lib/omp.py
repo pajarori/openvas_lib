@@ -561,7 +561,7 @@ class OMPUniversal(OMP):
 		"""
 
 		if not port_list:
-			port_list = self.get_port_lists().get("openvas default").get('id')
+			port_list = self.get_port_lists().get("all iana assigned tcp").get('id')
 
 		from collections.abc import Iterable
 		if isinstance(hosts, str):
@@ -1069,7 +1069,7 @@ class OMPUniversal(OMP):
 
 		:raises: AuditNotFoundError, ServerError
 		"""
-		
+
 		try:
 			etree.fromstring(self._manager.delete_report(report_id=report_id))
 		except ClientError:
