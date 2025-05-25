@@ -1,0 +1,14 @@
+LICENSE
+MANIFEST.in
+README.rst
+VERSION_MAJOR
+setup.py
+openvas_lib/__init__.py
+openvas_lib/common.py
+openvas_lib/data.py
+openvas_lib/omp.py
+openvas_lib/utils.py
+openvas_lib.egg-info/PKG-INFO
+openvas_lib.egg-info/SOURCES.txt
+openvas_lib.egg-info/dependency_links.txt
+openvas_lib.egg-info/top_level.txt

@@ -13,6 +13,9 @@ import logging
 
 from threading import RLock
 
+from gvm.connections import TLSConnection
+from gvm.protocols.latest import Gmp
+
 try:
 	from xml.etree import cElementTree as etree
 except ImportError:
@@ -84,15 +87,17 @@ def get_connector(host, username, password, port=9390, timeout=None, ssl_verify=
 
 	manager = ConnectionManager(host, username, password, port, timeout, ssl_verify)
 
+	connection = TLSConnection(
+		hostname = host,
+		port = port
+	)
+
+	gmp = Gmp(connection)
+	gmp.authenticate(username, password)
+
 	# Make concrete connector from version
-	if manager.protocol_version in ("4.0", "5.0", "6.0"):
-		from openvas_lib.ompv4 import OMPv4
-		return OMPv4(manager)
-	elif manager.protocol_version == "7.0":
-		from openvas_lib.ompv7 import OMPv7
-		return OMPv7(manager)
-	else:
-		raise RemoteVersionError("Unknown OpenVAS version for remote host.")
+	from openvas_lib.omp import OMPUniversal
+	return OMPUniversal(gmp)
 
 
 # ------------------------------------------------------------------------------
@@ -507,8 +512,6 @@ class OMP(object):
 		:param omp_manager: _OMPManager object.
 		:type omp_manager: ConnectionManager
 		"""
-		if not isinstance(omp_manager, ConnectionManager):
-			raise TypeError("Expected ConnectionManager, got '%s' instead" % type(omp_manager))
 
 		self._manager = omp_manager
 

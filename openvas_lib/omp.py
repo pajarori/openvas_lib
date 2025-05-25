@@ -2,11 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains OMPv7 implementation
+This file contains OMPUniversal implementation
 """
 
 from openvas_lib import *
 from openvas_lib.common import *
+
+try:
+	from xml.etree import cElementTree as etree
+except ImportError:
+	from xml.etree import ElementTree as etree
 
 __license__ = """
 Copyright 2018 - Golismero project
@@ -38,15 +43,15 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-__all__ = ["OMPv7"]
+__all__ = ["OMPUniversal"]
 
 
 # ------------------------------------------------------------------------------
 #
-# OMPv7 implementation
+# OMP implementation
 #
 # ------------------------------------------------------------------------------
-class OMPv7(OMP):
+class OMPUniversal(OMP):
 	"""
 	Internal manager for OpenVAS low level operations.
 
@@ -68,7 +73,7 @@ class OMPv7(OMP):
 		:type omp_manager: ConnectionManager
 		"""
 		# Call to super
-		super(OMPv7, self).__init__(omp_manager)
+		super(OMPUniversal, self).__init__(omp_manager)
 
 	# ----------------------------------------------------------------------
 	#
@@ -86,10 +91,8 @@ class OMPv7(OMP):
 
 		:return: a dict with the format: {role_name: role_ID}
 		"""
-
-		request = """<get_roles/>"""
-
-		elems = self._manager.make_xml_request(request, xml_result=True)
+		# self._manager.get_roles()
+		elems = etree.fromstring(self._manager.get_roles())
 
 		m_return = {}
 
@@ -137,20 +140,16 @@ class OMPv7(OMP):
 		roles = self.get_roles()
 		role_id=roles.get(role, 'user')
 
-		request = """<create_user>
-				<name>%s</name>
-				<password>%s</password>
-				<role id="%s"/>""" % (name, password, role_id)
+		roles = self.get_roles()
+		role_id=roles.get(role, 'user')
 
-		if hosts:
-			request += """<hosts allow="%s">%s</hosts>""" % (allow_hosts, str(",".join(hosts)))
-
-		if ifaces:
-			request += """<ifaces allow="%s">%s</ifaces>""" % (allow_ifaces, str(",".join(ifaces)))
-
-		request += """</create_user>"""
-
-		return self._manager.make_xml_request(request, xml_result=True).get("id")
+		return etree.fromstring(self._manager.create_user(
+			name=name, 
+			password=password, 
+			role_ids=[role_id], 
+			hosts_allow=allow_hosts, 
+			hosts=hosts)
+		).get("id")
 
 	# ----------------------------------------------------------------------
 
@@ -167,11 +166,9 @@ class OMPv7(OMP):
 		"""
 
 		if user_id:
-			request = """<delete_user user_id="%s"/>"""%user_id
+			self._manager.delete_user(user_id=user_id)
 		elif name:
-			request = """<delete_user name="%s"/>"""%name
-
-		self._manager.make_xml_request(request, xml_result=True)
+			self._manager.delete_user(name=name)
 
 	# ----------------------------------------------------------------------
 
@@ -259,7 +256,7 @@ class OMPv7(OMP):
 		"""
 
 		if not user_id:
-			elems = self._manager.make_xml_request("""<get_users/>""", xml_result=True)
+			elems = etree.fromstring(self._manager.get_users())
 			m_return = {}
 
 			for x in elems.findall("user"):
@@ -270,7 +267,7 @@ class OMPv7(OMP):
 			if not isinstance(user_id, str):
 				raise TypeError("Expected string, got %r instead" % type(user_id))
 
-			return self._manager.make_xml_request("""<get_users user_id='%s'/>""" % user_id, xml_result=True).find('.//user[@id="%s"]' % user_id)
+			return etree.fromstring(self._manager.get_user(user_id)).find('.//user[@id="%s"]' % user_id)
 
 	# ----------------------------------------------------------------------
 	#
@@ -295,13 +292,8 @@ class OMPv7(OMP):
 
 		:raises: ClientError, ServerError TODO
 		"""
-		request = """<create_port_list>
-				<name>%s</name>
-				<port_range>%s</port_range>
-				<comment>%s</comment>
-		</create_port_list>""" % (name, port_range, comment)
 
-		return self._manager.make_xml_request(request, xml_result=True).get("id")
+		return etree.fromstring(self._manager.create_port_list(name, port_range, comment)).get("id")
 
 	# ----------------------------------------------------------------------
 
@@ -317,9 +309,7 @@ class OMPv7(OMP):
 
 		"""
 
-		request = """<delete_port_list port_list_id="%s"/>"""%port_list_id
-
-		self._manager.make_xml_request(request, xml_result=True)
+		self._manager.delete_port_list(port_list_id)
 
 	# ----------------------------------------------------------------------
 
@@ -337,7 +327,7 @@ class OMPv7(OMP):
 		m_return = {}
 
 		if not port_list_id:
-			elems = self._manager.make_xml_request("""<get_port_lists details='1'/>""", xml_result=True)
+			elems = etree.fromstring(self._manager.get_port_lists(details='1'))
 
 			for x in elems.findall("port_list"):
 				port_ranges = []
@@ -352,7 +342,7 @@ class OMPv7(OMP):
 			if not isinstance(port_list_id, str):
 				raise TypeError("Expected string, got %r instead" % type(port_list_id))
 
-			port_list = self._manager.make_xml_request("""<get_port_lists port_list_id='%s' details='1'/>""" % port_list_id, xml_result=True).find('.//port_list[@id="%s"]' % port_list_id)
+			port_list = etree.fromstring(self._manager.get_port_lists(filter_id=port_list_id, details='1')).find('.//port_list[@id="%s"]' % port_list_id)
 			port_ranges = []
 			for r in port_list.findall("port_ranges/port_range"):
 				type = r.find('type').text
@@ -403,32 +393,32 @@ class OMPv7(OMP):
 
 		:raises: ClientError, ServerError
 		"""
-		request = """<create_schedule>
-				<name>%s</name>
-				<first_time>
-				<hour>%s</hour>
-				<minute>%s</minute>
-				<month>%s</month>
-				<day_of_month>%s</day_of_month>
-				<year>%s</year>
-				</first_time>
-				<timezone>%s</timezone>
-				<comment>%s</comment>""" % (name, hour, minute, month, day, year, timezone, "")
-		if duration:
-			request += """<duration>%s<unit>hour</unit></duration>""" % (duration)
-		else:
-			request += """<duration>0<unit>hour</unit></duration>"""
-		if period:
-			request += """<period>
-				%s
-				<unit>day</unit>
-				</period>""" % (period)
-		else:
-			request += """<period>0<unit>day</unit></period>"""
-		request += """
-	</create_schedule>"""
+		
+		from datetime import datetime
+		from icalendar import Calendar, Event
 
-		return self._manager.make_xml_request(request, xml_result=True).get("id")
+
+		calendar = Calendar()
+		calendar.add('prodid', '-//Golismero//OpenVAS//EN')
+		calendar.add('version', '2.0')
+
+		event = Event()
+		event.add('summary', name)
+		event.add('dtstart', datetime(int(year), int(month), int(day), int(hour), int(minute)))
+		event.add('dtstamp', datetime.now())
+		event.add('dtend', datetime(int(year), int(month), int(day), int(hour) + 1, int(minute)))
+		event.add('rrule', {
+			'freq': 'DAILY',
+			'interval': 1,
+			'count': 1
+		})
+		calendar.add_component(event)
+
+		return etree.fromstring(self._manager.create_schedule(
+			name=name,
+			icalendar=calendar.to_ical(),
+			timezone=timezone,
+		)).get("id")
 
 	# ----------------------------------------------------------------------
 
@@ -446,9 +436,9 @@ class OMPv7(OMP):
 		:raises: ClientError, ServerError
 		"""
 		if schedule_id:
-			return self._manager.make_xml_request('<get_schedules schedule_id="%s" tasks="%s"/>' % (schedule_id, tasks), xml_result=True)
+			return etree.fromstring(self._manager.get_schedules(filter_id=schedule_id, tasks=tasks))
 		else:
-			return self._manager.make_xml_request('<get_schedules tasks="%s"/>' % tasks, xml_result=True)
+			return etree.fromstring(self._manager.get_schedules(tasks=tasks))
 
 	# ----------------------------------------------------------------------
 
@@ -488,9 +478,7 @@ class OMPv7(OMP):
 		:raises: AuditNotFoundError, ServerError
 		"""
 
-		request = """<delete_schedule schedule_id="%s" ultimate="%s" />""" % (schedule_id, int(ultimate))
-
-		self._manager.make_xml_request(request, xml_result=True)
+		etree.fromstring(self._manager.delete_schedule(schedule_id=schedule_id, ultimate=ultimate))
 
 	# ----------------------------------------------------------------------
 	# ----------------------------------------------------------------------
@@ -513,10 +501,10 @@ class OMPv7(OMP):
 		"""
 		# Recover all config from OpenVAS
 		if config_id:
-			return self._manager.make_xml_request('<get_configs config_id="%s"/>' % config_id, xml_result=True)
+			return etree.fromstring(self._manager.get_scanners(filter_id=config_id, details='1')).find('.//config[@id="%s"]' % config_id)
 		else:
-			return self._manager.make_xml_request("<get_configs />", xml_result=True)
-
+			return etree.fromstring(self._manager.get_scanners(details='1'))
+		
 	# ----------------------------------------------------------------------
 	def get_configs_ids(self, name=None):
 		"""
@@ -575,28 +563,19 @@ class OMPv7(OMP):
 		if not port_list:
 			port_list = self.get_port_lists().get("openvas default").get('id')
 
-		from collections import Iterable
+		from collections.abc import Iterable
 		if isinstance(hosts, str):
 			m_targets = hosts
 		elif isinstance(hosts, Iterable):
 			m_targets = str(",".join(hosts))
 
-		request = """<create_target>
-				<name>%s</name>
-				<hosts>%s</hosts>""" % (name, m_targets)
-
-		if alive_test:
-			request += """<alive_tests>%s</alive_tests>"""%alive_test
-
-		if port_list:
-			request += """<port_list id="%s"/>"""%port_list
-
-		if comment:
-			request += """<comment>%s</comment>"""%comment
-
-		request += """</create_target>"""
-
-		return self._manager.make_xml_request(request, xml_result=True).get("id")
+		return etree.fromstring(self._manager.create_target(
+			name=name,
+			hosts=m_targets,
+			comment=comment,
+			port_list_id=port_list,
+			alive_test=alive_test
+		))
 
 	# ----------------------------------------------------------------------
 
@@ -610,9 +589,7 @@ class OMPv7(OMP):
 		:raises: ClientError, ServerError
 		"""
 
-		request = """<delete_target target_id="%s" />""" % target_id
-
-		self._manager.make_xml_request(request, xml_result=True)
+		self._manager.delete_target(target_id=target_id)
 
 	# ----------------------------------------------------------------------
 
@@ -632,10 +609,9 @@ class OMPv7(OMP):
 		m_return = {}
 		# Recover all config from OpenVAS
 		if target_id:
-			targets = self._manager.make_xml_request('<get_targets id="%s"/>' % target_id,
-												  xml_result=True).find('.//target[@id="%s"]' % target_id)
+			targets = etree.fromstring(self._manager.get_targets(filter_id=target_id, details='1'))
 		else:
-			targets = self._manager.make_xml_request("<get_targets />", xml_result=True)
+			targets = etree.fromstring(self._manager.get_targets(details='1'))
 
 		for x in targets.findall("target"):
 			m_return[x.find("name").text] = x.get("id")
@@ -705,34 +681,17 @@ class OMPv7(OMP):
 		if not config:
 			config = "Full and fast"
 
-		request = """<create_task>
-			<name>%s</name>
-			<comment>%s</comment>
-			<config id="%s"/>
-			<target id="%s"/>""" % (name, comment, config, target)
-
-		if schedule:
-			request += """<schedule id= "%s"/>""" % (schedule)
-
-		if max_checks or max_hosts:
-			request += """<preferences>"""
-
-			if max_checks:
-				request += """<preference>
-								<scanner_name>max_checks</scanner_name>
-								<value>%s</value>
-							</preference>""" % max_checks
-			if max_hosts:
-				request += """<preference>
-								<scanner_name>max_hosts</scanner_name>
-								<value>%s</value>
-							</preference>""" % max_hosts
-
-			request += """</preferences>"""
-
-		request += """</create_task>"""
-
-		return self._manager.make_xml_request(request, xml_result=True).get("id")
+		return etree.fromstring(self._manager.create_task(
+			name=name,
+			target_id=target,
+			config_id=config,
+			schedule_id=schedule,
+			comment=comment,
+			preferences={
+				'max_checks': max_checks,
+				'max_hosts': max_hosts
+			}
+		)).get("id")
 
 	# ----------------------------------------------------------------------
 
@@ -748,9 +707,7 @@ class OMPv7(OMP):
 		if not isinstance(task_id, str):
 			raise TypeError("Expected string, got %r instead" % type(task_id))
 
-		m_query = '<start_task task_id="%s"/>' % task_id
-
-		m_response = self._manager.make_xml_request(m_query, xml_result=True)
+		m_response = etree.fromstring(self._manager.start_task(task_id=task_id))
 
 		return m_response
 
@@ -768,10 +725,9 @@ class OMPv7(OMP):
 
 		:raises: AuditNotFoundError, ServerError
 		"""
-		request = """<delete_task task_id="%s" ultimate="%s" />""" % (task_id, int(ultimate))
 
 		try:
-			self._manager.make_xml_request(request, xml_result=True)
+			etree.fromstring(self._manager.delete_task(task_id=task_id, ultimate=ultimate))
 		except ClientError:
 			raise AuditNotFoundError()
 
@@ -786,10 +742,8 @@ class OMPv7(OMP):
 
 		:raises: ServerError, AuditNotFoundError
 		"""
-
-		request = """<stop_task task_id="%s" />""" % task_id
-
-		self._manager.make_xml_request(request, xml_result=True)
+		
+		etree.fromstring(self._manager.stop_task(task_id=task_id))
 
 	# ----------------------------------------------------------------------
 
@@ -809,10 +763,9 @@ class OMPv7(OMP):
 		# Recover all task from OpenVAS
 
 		if task_id:
-			return self._manager.make_xml_request('<get_tasks id="%s"/>' % task_id,
-												  xml_result=True).find('.//task[@id="%s"]' % task_id)
+			return etree.fromstring(self._manager.get_tasks(filter_id=task_id, details='1')).find('.//task[@id="%s"]' % task_id)
 		else:
-			return self._manager.make_xml_request("<get_tasks />", xml_result=True)
+			return etree.fromstring(self._manager.get_tasks(details='1')).find('.//tasks')
 
 
 	def get_tasks(self, task_id=None):
@@ -925,8 +878,7 @@ class OMPv7(OMP):
 			raise TypeError("Expected string, got %r instead" % type(task_id))
 
 		try:
-			m_response = self._manager.make_xml_request('<get_tasks task_id="%s" details="1"/>' % task_id,
-														xml_result=True)
+			m_response = self._manager.get_tasks(filter_id=task_id, details='1')
 		except ServerError as e:
 			raise VulnscanServerError("Can't get the detail for the task %s. Error: %s" % (task_id, e.message))
 
@@ -1025,11 +977,9 @@ class OMPv7(OMP):
 		"""
 
 		if task_id:
-			m_query = '<get_results task_id="%s"/>' % task_id
+			return etree.fromstring(self._manager.get_results(task_id=task_id, xml_result=True))
 		else:
-			m_query = '<get_results/>'
-
-		return self._manager.make_xml_request(m_query, xml_result=True)
+			return etree.fromstring(self._manager.get_results(xml_result=True))
 
 	# ----------------------------------------------------------------------
 	#
@@ -1079,9 +1029,7 @@ class OMPv7(OMP):
 		m_response = ""
 
 		try:
-			m_response = self._manager.make_xml_request(
-				'<get_reports report_id="%s" format_id="6c248850-1f62-11e1-b082-406186ea4fc5"/>' % report_id,
-				xml_result=True)
+			m_response = etree.fromstring(self._manager.get_reports(filter_id=report_id))
 		except ServerError as e:
 			print("Can't get the HTML for the report %s. Error: %s" % (report_id, e.message))
 
@@ -1104,7 +1052,7 @@ class OMPv7(OMP):
 			raise TypeError("Expected string, got %r instead" % type(report_id))
 
 		try:
-			m_response = self._manager.make_xml_request('<get_reports report_id="%s" />' % report_id, xml_result=True)
+			m_response = etree.fromstring(self._manager.get_reports(filter_id=report_id))
 		except ServerError as e:
 			print("Can't get the xml for the report %s. Error: %s" % (report_id, e.message))
 
@@ -1121,10 +1069,9 @@ class OMPv7(OMP):
 
 		:raises: AuditNotFoundError, ServerError
 		"""
-		request = """<delete_report report_id="%s" />""" % report_id
-
+		
 		try:
-			self._manager.make_xml_request(request, xml_result=True)
+			etree.fromstring(self._manager.delete_report(report_id=report_id))
 		except ClientError:
 			raise AuditNotFoundError()
 
