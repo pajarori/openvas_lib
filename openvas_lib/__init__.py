@@ -693,7 +693,7 @@ class VulnscanManager(object):
 			raise TypeError("Expected string, got %r instead" % type(scanners_name))
 		
 		try:
-			scanner_id = self.__manager.get_scanners.get(scanners_name)
+			scanner_id = self.__manager.get_scanners().get(scanners_name)
 		except:
 			scanner_id = None
 

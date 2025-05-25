@@ -606,6 +606,8 @@ class OMPUniversal(OMP):
 		elif isinstance(hosts, str) and "," not in hosts:
 			m_targets = [hosts]
 
+		print(m_targets)
+
 		return etree.fromstring(self._manager.create_target(
 			name=name,
 			hosts=m_targets,
@@ -727,6 +729,7 @@ class OMPUniversal(OMP):
 			'comment': comment,
 			'max_checks': max_checks,
 			'max_hosts': max_hosts
+
 		})
 
 		return etree.fromstring(self._manager.create_task(
