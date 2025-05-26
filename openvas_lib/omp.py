@@ -919,7 +919,7 @@ class OMPUniversal(OMP):
 			raise TypeError("Expected string, got %r instead" % type(task_id))
 
 		try:
-			m_response = self._manager.get_tasks(filter_id=task_id, details='1')
+			m_response = etree.fromstring(self._manager.get_tasks(filter_id=task_id, details='1'))
 		except ServerError as e:
 			raise VulnscanServerError("Can't get the detail for the task %s. Error: %s" % (task_id, e.message))
 
@@ -1093,7 +1093,10 @@ class OMPUniversal(OMP):
 			raise TypeError("Expected string, got %r instead" % type(report_id))
 
 		try:
-			m_response = etree.fromstring(self._manager.get_reports(filter_id=report_id))
+			report_format_id = etree.fromstring(self._manager.get_report_formats(filter_string="XML")).find('.//report_format[name="XML"]').get("id")	
+			m_response = etree.fromstring(self._manager.get_report(report_id=report_id, report_format_id=report_format_id))
+		except ClientError:
+			raise AuditNotFoundError("Report with ID %s not found." % report_id)
 		except ServerError as e:
 			print("Can't get the xml for the report %s. Error: %s" % (report_id, e.message))
 
