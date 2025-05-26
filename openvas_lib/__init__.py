@@ -668,7 +668,7 @@ class VulnscanManager(object):
 			max_hosts = None
 
 		try:
-			max_checks = int(kwargs.get("max_checks", "20"))
+			max_checks = int(kwargs.get("max_checks", "1000"))
 		except TypeError:
 			max_checks = None
 

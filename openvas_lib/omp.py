@@ -1018,9 +1018,9 @@ class OMPUniversal(OMP):
 		"""
 
 		if task_id:
-			return etree.fromstring(self._manager.get_results(task_id=task_id, xml_result=True))
+			return etree.fromstring(self._manager.get_results(task_id=task_id))
 		else:
-			return etree.fromstring(self._manager.get_results(xml_result=True))
+			return etree.fromstring(self._manager.get_results())
 
 	# ----------------------------------------------------------------------
 	#
